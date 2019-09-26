@@ -201,6 +201,12 @@ section.articles{
     font-size:16px;
     line-height: 1.8em;
 }
+.main-articles-about h2 {
+    text-align: center;
+}
+.main-articles-about p {
+    text-align: center;
+}
 .edit label,.editp label {
     width: 10%;
     text-align: right;
