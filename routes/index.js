@@ -5,21 +5,32 @@ const mysql = require('./../database');
 const router = express.Router();
 
 /* GET home page. */
-router.get('/', function(req, res) {
+router.get('/', (req, res) => {
+  const page = req.query.page || 1;
+  const start = (page - 1) * 8;
+  const end = page * 8;
+  const queryCount = 'SELECT COUNT(*) AS articleNum FROM article';
   // 新加的文章展示在最前面
-  var query = 'SELECT * FROM article ORDER BY articleID DESC';
+  const query = 'SELECT * FROM article ORDER BY articleID DESC LIMIT ' + start + ',' + end;
   mysql.query(query, (err, rows) => {
-     var articles = rows;
-     articles.forEach( (ele) => {
-         var year = ele.articleTime.getFullYear();
-         var month = ele.articleTime.getMonth() + 1 > 10 ? ele.articleTime.getMonth() : '0' + (ele.articleTime.getMonth() + 1);
-         var date = ele.articleTime.getDate() > 10 ? ele.articleTime.getDate() : '0' + ele.articleTime.getDate();
+     const articles = rows;
+     articles.forEach((ele) => {
+         const year = ele.articleTime.getFullYear();
+         const month = ele.articleTime.getMonth() + 1 > 10 ? ele.articleTime.getMonth() : '0' + (ele.articleTime.getMonth() + 1);
+         const date = ele.articleTime.getDate() > 10 ? ele.articleTime.getDate() : '0' + ele.articleTime.getDate();
          ele.articleTime = year + '-' + month + '-' + date;
      });
-     res.render(
-       "index",
-       {articles: articles, user:req.session.user}
-     );
+     mysql.query(queryCount, (err, rows) => {
+       const articleNum = rows[0].articleNum;
+       const pageNum = Math.ceil(articleNum / 8);
+       res.render( 'index', { articles: articles,
+                              user:req.session.user,
+                              pageNum: pageNum,
+                              page: page
+                            }
+       );
+     });
+
   });
 });
 
@@ -96,6 +107,54 @@ router.post('/edit', function(req, res, next) {
          return;
      }
      res.redirect('/');
+  });
+});
+
+router.get('/modify/:articleID', (req, res, next) => {
+  const articleID = req.params.articleID;
+  const user = req.session.user;
+  const query = 'SELECT * FROM article WHERE articleID=' + mysql.escape(articleID);
+  if (!user) {
+    res.redirect('/login');
+    return;
+  }
+  mysql.query(query, (err, rows, fields) =>{
+    if (err) {
+      console.log(err);
+      return;
+    }
+    const article = rows[0];
+    const { articleTitle, articleContent } = article;
+    console.log(articleTitle, articleContent);
+    res.render('modify', { user, title: articleTitle, content: articleContent});
+  });
+}); 
+
+router.post('/modify/:articleID', function(req, res, next) {
+  var articleID = req.params.articleID;
+  var user = req.session.user;
+  var title = req.body.title;
+  var content = req.body.content;
+  var query = 'UPDATE article SET articleTitle=' + mysql.escape(title) + ',articleContent=' + mysql.escape(content) + 'WHERE articleID=' + mysql.escape(articleID);
+  mysql.query(query, function(err, rows, fields) {
+      if(err) {
+          console.log(err);
+          return;
+      }
+      res.redirect('/');
+  });
+});
+
+router.get('/delete/:articleID', (req, res, next) => {
+  var articleID = req.params.articleID;
+  var user = req.session.user;
+  var query = 'DELETE FROM article WHERE articleID=' + mysql.escape(articleID);
+  if(!user) {
+      res.redirect('/login');
+      return;
+  }
+  mysql.query(query, function(err, rows, fields) {
+      res.redirect('/')
   });
 });
 

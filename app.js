@@ -56,7 +56,7 @@ app.use((err, req, res, next) => {
   res.render('error');
 });
 
-app.listen(3002, () => {
+app.listen(3001, () => {
   console.log('listenting port 3001');
 });
 
